@@ -2,22 +2,28 @@ using UnityEngine;
 
 public class mobil : MonoBehaviour
 {
+    [Header("Mobile Input Settings")]
+    public Joystick joystick; // Kolom untuk memasukkan analog dari Canvas
+    private bool isBraking;   // Status rem (dikontrol lewat tombol UI nanti)
+
     private float horizontalInput, verticalInput;
     private float currentSteerAngle, currentBrakeForce;
-    private bool isBraking;
 
     // Settings
+    [Header("Car Settings")]
     [SerializeField] private float motorForce = 1500f;
     [SerializeField] private float brakeForce = 3000f;
     [SerializeField] private float maxSteerAngle = 30f;
 
     // Wheel Colliders
+    [Header("Wheel Colliders")]
     [SerializeField] private WheelCollider frontLeftWheelCollider;
     [SerializeField] private WheelCollider frontRightWheelCollider;
     [SerializeField] private WheelCollider rearLeftWheelCollider;
     [SerializeField] private WheelCollider rearRightWheelCollider;
 
     // Wheel Transforms
+    [Header("Wheel Transforms")]
     [SerializeField] private Transform frontLeftWheelTransform;
     [SerializeField] private Transform frontRightWheelTransform;
     [SerializeField] private Transform rearLeftWheelTransform;
@@ -33,14 +39,31 @@ public class mobil : MonoBehaviour
 
     private void GetInput()
     {
-        // Steering
-        horizontalInput = Input.GetAxis("Horizontal");
+        // 1. Cek apakah Joystick sudah dipasang di Inspector
+        if (joystick != null)
+        {
+            // Steering (Kanan/Kiri)
+            horizontalInput = joystick.Horizontal;
 
-        // Gas / Reverse
-        verticalInput = Input.GetAxis("Vertical");
-
-        // Brake
-        isBraking = Input.GetKey(KeyCode.Space);
+            // Gas / Mundur (Atas/Bawah)
+            verticalInput = joystick.Vertical;
+        }
+        else
+        {
+            // Fallback: Kalau Joystick belum dipasang, tetap bisa pakai Keyboard untuk testing di Laptop
+            horizontalInput = Input.GetAxis("Horizontal");
+            verticalInput = Input.GetAxis("Vertical");
+            
+            // Rem pakai spasi hanya berlaku kalau lagi main di PC/Laptop
+            if (Input.GetKey(KeyCode.Space)) 
+            {
+                isBraking = true;
+            } 
+            else if (!Input.GetKey(KeyCode.Space) && joystick == null) 
+            {
+                // Bagian ini sengaja dikosongkan agar rem UI tidak bertabrakan dengan keyboard
+            }
+        }
     }
 
     private void HandleMotor()
@@ -108,5 +131,16 @@ public class mobil : MonoBehaviour
         {
             wheelTransform.rotation = rot;
         }
+    }
+
+    // --- FUNGSI BARU UNTUK TOMBOL REM DI LAYAR HP ---
+    public void TekanRem()
+    {
+        isBraking = true;
+    }
+
+    public void LepasRem()
+    {
+        isBraking = false;
     }
 }
