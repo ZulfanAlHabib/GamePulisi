@@ -26,21 +26,10 @@ public class SirenePolisi : MonoBehaviour
 
     void Update()
     {
-        // Jika menekan tombol F, aktifkan atau matikan sirene
+        // Tetap bisa pakai tombol F untuk testing di Laptop
         if (Input.GetKeyDown(KeyCode.F))
         {
-            sireneAktif = !sireneAktif;
-
-            if (sireneAktif)
-            {
-                audioSirene.Play(); // Bunyikan suara
-            }
-            else
-            {
-                audioSirene.Stop(); // Matikan suara
-                lampuMerah.SetActive(false);
-                lampuBiru.SetActive(false);
-            }
+            TekanTombolSirene(); // Panggil fungsi di bawah
         }
 
         // Logika untuk membuat lampu berkedip bergantian
@@ -58,6 +47,25 @@ public class SirenePolisi : MonoBehaviour
 
                 timer = 0; // Reset timer
             }
+        }
+    }
+
+    // ==========================================
+    // FUNGSI BARU INI YANG DIPANGGIL OLEH TOMBOL UI
+    // ==========================================
+    public void TekanTombolSirene()
+    {
+        sireneAktif = !sireneAktif; // Balikkan keadaan (Mati jadi Nyala, Nyala jadi Mati)
+
+        if (sireneAktif)
+        {
+            audioSirene.Play(); // Bunyikan suara
+        }
+        else
+        {
+            audioSirene.Stop(); // Matikan suara
+            lampuMerah.SetActive(false);
+            lampuBiru.SetActive(false);
         }
     }
 }

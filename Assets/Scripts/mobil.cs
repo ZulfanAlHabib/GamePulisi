@@ -3,8 +3,12 @@ using UnityEngine;
 public class mobil : MonoBehaviour
 {
     [Header("Mobile Input Settings")]
-    public Joystick joystick; // Kolom untuk memasukkan analog dari Canvas
-    private bool isBraking;   // Status rem (dikontrol lewat tombol UI nanti)
+    public Stir steeringWheel; // Kolom untuk analog (Hanya untuk belok)
+    public GameObject sirineObject; // Masukkan objek lampu sirine/suara di Inspector
+
+    private float uiGasInput = 0f; // 1 untuk maju, -1 untuk mundur
+    private bool isBraking;
+    private bool isNosActive;
 
     private float horizontalInput, verticalInput;
     private float currentSteerAngle, currentBrakeForce;
@@ -12,6 +16,7 @@ public class mobil : MonoBehaviour
     // Settings
     [Header("Car Settings")]
     [SerializeField] private float motorForce = 1500f;
+    [SerializeField] private float nosMultiplier = 2f; // Kecepatan dikali 2 saat NOS
     [SerializeField] private float brakeForce = 3000f;
     [SerializeField] private float maxSteerAngle = 30f;
 
@@ -37,51 +42,49 @@ public class mobil : MonoBehaviour
         UpdateWheels();
     }
 
-    private void GetInput()
+private void GetInput()
+{
+    // 1. STEERING (Kanan/Kiri): Mengambil dari Steering Wheel
+    if (steeringWheel != null)
     {
-        // 1. Cek apakah Joystick sudah dipasang di Inspector
-        if (joystick != null)
-        {
-            // Steering (Kanan/Kiri)
-            horizontalInput = joystick.Horizontal;
-
-            // Gas / Mundur (Atas/Bawah)
-            verticalInput = joystick.Vertical;
-        }
-        else
-        {
-            // Fallback: Kalau Joystick belum dipasang, tetap bisa pakai Keyboard untuk testing di Laptop
-            horizontalInput = Input.GetAxis("Horizontal");
-            verticalInput = Input.GetAxis("Vertical");
-            
-            // Rem pakai spasi hanya berlaku kalau lagi main di PC/Laptop
-            if (Input.GetKey(KeyCode.Space)) 
-            {
-                isBraking = true;
-            } 
-            else if (!Input.GetKey(KeyCode.Space) && joystick == null) 
-            {
-                // Bagian ini sengaja dikosongkan agar rem UI tidak bertabrakan dengan keyboard
-            }
-        }
+        horizontalInput = steeringWheel.steeringValue; // Mengambil nilai dari script baru kita
     }
+    else
+    {
+        // Fallback untuk testing di laptop
+        horizontalInput = Input.GetAxis("Horizontal");
+    }
+
+    // 2. GAS (Maju/Mundur): Mengambil nilai dari tombol UI
+    verticalInput = uiGasInput;
+
+    // 3. FALLBACK KEYBOARD (Untuk testing di Laptop)
+    if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow)) verticalInput = 1f;
+    if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow)) isBraking = true; 
+    if (Input.GetKeyUp(KeyCode.S) || Input.GetKeyUp(KeyCode.DownArrow)) isBraking = false;
+    
+    // Testing NOS dan Sirine
+    if (Input.GetKeyDown(KeyCode.F)) ToggleSirine();
+    if (Input.GetKeyDown(KeyCode.LeftShift)) ToggleNos();
+}
 
     private void HandleMotor()
     {
+        // Hitung total tenaga. Jika NOS aktif, kalikan motorForce dengan nosMultiplier
+        float currentMotorForce = isNosActive ? (motorForce * nosMultiplier) : motorForce;
+
         if (isBraking)
         {
             // Matikan tenaga mesin saat rem
             rearLeftWheelCollider.motorTorque = 0f;
             rearRightWheelCollider.motorTorque = 0f;
-
             currentBrakeForce = brakeForce;
         }
         else
         {
             // RWD = roda belakang penggerak
-            rearLeftWheelCollider.motorTorque = verticalInput * motorForce;
-            rearRightWheelCollider.motorTorque = verticalInput * motorForce;
-
+            rearLeftWheelCollider.motorTorque = verticalInput * currentMotorForce;
+            rearRightWheelCollider.motorTorque = verticalInput * currentMotorForce;
             currentBrakeForce = 0f;
         }
 
@@ -99,8 +102,6 @@ public class mobil : MonoBehaviour
     private void HandleSteering()
     {
         currentSteerAngle = maxSteerAngle * horizontalInput;
-
-        // Steering hanya roda depan
         frontLeftWheelCollider.steerAngle = currentSteerAngle;
         frontRightWheelCollider.steerAngle = currentSteerAngle;
     }
@@ -119,10 +120,8 @@ public class mobil : MonoBehaviour
         Quaternion rot;
 
         wheelCollider.GetWorldPose(out pos, out rot);
-
         wheelTransform.position = pos;
 
-        // Membalik rotasi roda kiri agar normal
         if (isLeftWheel)
         {
             wheelTransform.rotation = rot * Quaternion.Euler(0, 180, 0);
@@ -133,14 +132,42 @@ public class mobil : MonoBehaviour
         }
     }
 
-    // --- FUNGSI BARU UNTUK TOMBOL REM DI LAYAR HP ---
-    public void TekanRem()
-    {
-        isBraking = true;
+    // ==========================================
+    // FUNGSI UNTUK TOMBOL UI
+    // ==========================================
+
+    // GAS
+    public void TekanGas() { uiGasInput = 1f; isBraking = false; }
+    public void LepasGas() { uiGasInput = 0f; }
+
+    // REM SEKALIGUS MUNDUR
+    public void TekanRem() 
+    { 
+        uiGasInput = -1f; // Memberikan tenaga mundur (negatif)
+        isBraking = false; 
+    }
+    
+    public void LepasRem() 
+    { 
+        uiGasInput = 0f; // Berhenti mundur saat dilepas
     }
 
-    public void LepasRem()
+    // NOS (KODE DIPERBARUI MENJADI TOGGLE)
+    public void ToggleNos() 
+    { 
+        if (Time.timeScale == 0f) return; // Kunci: Jika game stop/pause, jangan lakukan apa-apa
+        isNosActive = !isNosActive; 
+    }
+
+    // SIRINE (Klik Sekali / Toggle)
+    public void ToggleSirine()
     {
-        isBraking = false;
+        if (Time.timeScale == 0f) return; // Kunci: Jika game stop/pause, jangan lakukan apa-apa
+        
+        if (sirineObject != null)
+        {
+            // Nyala-matikan objek sirine
+            sirineObject.SetActive(!sirineObject.activeSelf);
+        }
     }
 }

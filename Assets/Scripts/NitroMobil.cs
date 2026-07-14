@@ -1,64 +1,49 @@
 using UnityEngine;
 
-[RequireComponent(typeof(Rigidbody))]
 public class NitroMobil : MonoBehaviour
 {
-    [Header("Pengaturan Nitro")]
-    public float kekuatanNitro = 5000f; // Seberapa kuat dorongan nitro
-    public float maxEnergi = 100f;     // Total kapasitas kapasitas nitro
-    public float kecepatanHabis = 25f; // Seberapa cepat energi berkurang saat dipakai
-    public float kecepatanIsi = 10f;   // Seberapa cepat energi terisi kembali saat mati
+    [Header("Efek NOS")]
+    public ParticleSystem efekApiKiri;
+    public ParticleSystem efekApiKanan;
+    public AudioSource suaraNos;
 
-    private Rigidbody rb;
-    private float energiSekarang;
-    private bool sedangNitro = false;
+    // Variabel rahasia untuk mengingat status NOS
+    private bool nosMenyala = false;
 
-    void Start()
+    // Fungsi utama yang akan dipanggil oleh tombol NOS di layar
+    // Tambahkan ini di dalam NitroMobil.cs
+    public void ToggleNos()
     {
-        rb = GetComponent<Rigidbody>();
-        energiSekarang = maxEnergi; // Mulai game dengan nitro penuh
-    }
+        // KUNCI: Jika game sedang pause atau hitung mundur, jangan lakukan apa-apa
+        if (Time.timeScale == 0f) return; 
 
-    void Update()
-    {
-        // Cek apakah tombol N ditekan DAN energi nitro masih ada
-        if (Input.GetKey(KeyCode.N) && energiSekarang > 0)
+        nosMenyala = !nosMenyala; 
+
+        if (nosMenyala)
         {
-            sedangNitro = true;
+            NyalakanEfekNos();
         }
         else
         {
-            sedangNitro = false;
-        }
-
-        // Logika pengurangan dan pengisian energi nitro
-        if (sedangNitro)
-        {
-            energiSekarang -= kecepatanHabis * Time.deltaTime;
-            // Batasi agar tidak minus
-            energiSekarang = Mathf.Clamp(energiSekarang, 0f, maxEnergi); 
-        }
-        else
-        {
-            energiSekarang += kecepatanIsi * Time.deltaTime;
-            // Batasi agar tidak melebihi batas maksimal
-            energiSekarang = Mathf.Clamp(energiSekarang, 0f, maxEnergi);
+            MatikanEfekNos();
         }
     }
 
-    void FixedUpdate()
+    public void NyalakanEfekNos()
     {
-        // Penambahan kecepatan dilakukan di FixedUpdate karena menggunakan Fisika (Rigidbody)
-        if (sedangNitro)
-        {
-            // Menambahkan gaya ke arah DEPAN bodi mobil (transform.forward)
-            rb.AddForce(transform.forward * kekuatanNitro, ForceMode.Force);
-        }
+        if (efekApiKiri != null) efekApiKiri.Play();
+        if (efekApiKanan != null) efekApiKanan.Play();
+        
+        if (suaraNos != null && !suaraNos.isPlaying) 
+            suaraNos.Play();
     }
 
-    // Fungsi tambahan untuk membaca sisa nitro (akan berguna untuk UI/Slider nanti)
-    public float AmbilPersentaseNitro()
+    public void MatikanEfekNos()
     {
-        return energiSekarang / maxEnergi;
+        if (efekApiKiri != null) efekApiKiri.Stop();
+        if (efekApiKanan != null) efekApiKanan.Stop();
+        
+        if (suaraNos != null) 
+            suaraNos.Stop();
     }
 }

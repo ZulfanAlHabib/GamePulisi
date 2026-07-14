@@ -1,75 +1,79 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
-public class MainMenuManager : MonoBehaviour
+public class MainMenuManager : MonoBehaviour 
 {
-    [Header("UI Panels")]
-    public GameObject panelInfo;
+    [Header("Pengaturan Panel")]
+    public GameObject panelLevel; 
+    public GameObject panelSettings; // KODE BARU: Kolom untuk memasukkan Panel Settings
 
-    [Header("Audio Settings")]
-    public AudioSource audioSource; // Referensi ke "speaker"
-    public AudioClip suaraSirine;   // Referensi ke file MP3 kamu
+    [Header("Pengaturan Tombol Level")]
+    public Button tombolLevel1;
+    public Button tombolLevel2;
 
     void Start()
     {
-        if (panelInfo != null)
+        CekStatusLevel();
+        
+        // Memastikan semua panel pop-up tertutup saat awal mulai
+        if (panelLevel != null) panelLevel.SetActive(false);
+        if (panelSettings != null) panelSettings.SetActive(false); 
+    }
+
+    private void CekStatusLevel()
+    {
+        int levelTerbuka = PlayerPrefs.GetInt("LevelTerbuka", 1);
+        if (tombolLevel1 != null) tombolLevel1.interactable = true;
+
+        if (levelTerbuka >= 2)
         {
-            panelInfo.SetActive(false);
+            if (tombolLevel2 != null) tombolLevel2.interactable = true;
+        }
+        else
+        {
+            if (tombolLevel2 != null) tombolLevel2.interactable = false;
         }
     }
 
-    // Fungsi khusus untuk memutar suara
-    // Fungsi khusus untuk memutar suara
-    public void MainkanSuara()
+    public void BukaLevel1()
     {
-        if (audioSource != null && suaraSirine != null)
-        {
-            // Masukkan kaset ke speaker dan putar
-            audioSource.clip = suaraSirine;
-            audioSource.Play();
-            
-            // Suruh Unity menjalankan fungsi HentikanSuara setelah 1.5 detik
-            Invoke("HentikanSuara", 0.5f); 
-        }
-    }
-
-    // Fungsi untuk mematikan speaker
-    private void HentikanSuara()
-    {
-        if (audioSource != null)
-        {
-            audioSource.Stop(); // Matikan suara secara paksa
-        }
-    }
-
-    public void MulaiGame()
-    {
-        MainkanSuara();
-        // Kita gunakan Invoke agar ada jeda 0.5 detik untuk memutar suara sebelum pindah scene
-        Invoke("LoadSceneGameplay", 0.5f); 
-    }
-
-    private void LoadSceneGameplay()
-    {
+        Time.timeScale = 1f; 
         SceneManager.LoadScene("s1"); 
     }
 
-    public void BukaInfo()
+    public void BukaLevel2()
     {
-        MainkanSuara();
-        panelInfo.SetActive(true);
+        Time.timeScale = 1f; 
+        SceneManager.LoadScene("s2"); 
     }
 
-    public void TutupInfo()
+    // --- FUNGSI PANEL LEVEL ---
+    public void BukaPanelLevel()
     {
-        MainkanSuara();
-        panelInfo.SetActive(false);
+        if (panelLevel != null) panelLevel.SetActive(true);
     }
 
+    public void TutupPanelLevel()
+    {
+        if (panelLevel != null) panelLevel.SetActive(false);
+    }
+
+    // --- FUNGSI BARU: PANEL SETTING (SUARA) ---
+    public void BukaPanelSettings()
+    {
+        if (panelSettings != null) panelSettings.SetActive(true);
+    }
+
+    public void TutupPanelSettings()
+    {
+        if (panelSettings != null) panelSettings.SetActive(false);
+    }
+
+    // --- FUNGSI BARU: KELUAR GAME ---
     public void KeluarGame()
     {
-        MainkanSuara();
-        Debug.Log("Keluar dari Game!");
-        Application.Quit();
+        Debug.Log("Pemain keluar dari game!"); // Ini hanya muncul di Console Unity
+        Application.Quit(); // KODE PENTING: Menutup aplikasi
     }
 }
